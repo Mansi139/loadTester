@@ -4,19 +4,21 @@ from datetime import datetime
 import json
 import random
 import sys
+from os import environ
 from itertools import islice
 
 class KinesisLoader:
     def __init__(self, batch_size=500, maximum_records=1000):
         """ The default batch_size here is to match the maximum allowed by Kinesis in a PutRecords request """
 
-        ACCESS_KEY = 'AKIAI7Q2BFVBPUBLTJHA'
-        SECRET_KEY = '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'
+        PROD_ID = environ.get('AWS_ACCESS_KEY_ID')
+        PROD_KEY = environ.get('AWS_SECRET_ACCESS_KEY')
+        assert PROD_ID and PROD_KEY
 
         self.kinesis_client = boto3.client(
         'kinesis',
-        aws_access_key_id=ACCESS_KEY,
-        aws_secret_access_key=SECRET_KEY,
+        aws_access_key_id=PROD_ID,
+        aws_secret_access_key=PROD_KEY,
         )
         self.batch_size = min(batch_size, 500)
         self.maximum_records = maximum_records
@@ -100,16 +102,13 @@ class KinesisLoader:
         'meta_id': 1,
         'data': self.make_observation_data(feature_dict['property_list']),
         'node_id': node_id,
-        'sensor': self.make_sensor_data(feature_dict['sensor'])
+        'sensor': feature_dict['sensor'][random.randrange(0,len(feature_dict['sensor']))]
+
         }
         return observation
 
-
     def make_observation_data(self,property_list):
         return {property_name: random.randint(1,50) for property_name in property_list}
-
-    def make_sensor_data(self,sensor_list):
-        return { 'sensor_name ': sensor_list[random.randrange(0,len(sensor_list))]}
 
     def generate_records(self,num_nodes,burst_per_min,observation_types):
         print("num of nodes: ", num_nodes)
